@@ -1,0 +1,680 @@
+Below is a **complete AI prompt** that you can use with **Lovable AI, Bolt.new, Firebase Studio, Cursor AI, v0, or any AI app builder** to generate your **React Native + Firebase IoT Water Meter System**.
+
+---
+
+# AI Prompt
+
+## Project Title
+
+**IoT-Based Smart Water Meter Monitoring System for Sri Lanka**
+
+---
+
+## Project Description
+
+Develop a modern, professional, responsive mobile application using **React Native (JavaScript)** with **Firebase** backend.
+
+The system consists of two separate mobile applications.
+
+1. User Mobile App
+2. Government Authority Mobile App
+
+The system receives real-time data from an ESP32-based Smart Water Meter.
+
+ESP32 is connected with
+
+* Flow Sensor
+* Pressure Sensor 1
+* Pressure Sensor 2
+* Solenoid Valve
+* Battery Management System (BMS)
+* Hydro Generator Charging System
+
+The ESP32 uploads all sensor values to Firebase Realtime Database.
+
+Both mobile applications retrieve and update data in real-time.
+
+The application must follow modern Material Design 3 with premium UI/UX.
+
+Primary colors:
+
+Blue
+
+White
+
+Light Gray
+
+Dark Navy
+
+Use smooth animations and beautiful dashboards.
+
+---
+
+# Technologies
+
+React Native (JavaScript)
+
+Firebase Authentication
+
+Firebase Realtime Database
+
+Firebase Cloud Firestore
+
+Firebase Cloud Messaging
+
+Firebase Storage
+
+React Navigation
+
+React Native Paper
+
+React Native Chart Kit
+
+Lottie Animation
+
+Expo
+
+ESP32
+
+REST API
+
+---
+
+# USER AUTHENTICATION
+
+## Registration Page
+
+Fields
+
+NIC Number
+
+First Name
+
+Last Name
+
+Mobile Number
+
+Email
+
+Password
+
+Confirm Password
+
+Accept Terms
+
+Register Button
+
+Already have account? Login
+
+Validate all fields.
+
+Store user profile in Firestore.
+
+---
+
+## Login Page
+
+Email
+
+Password
+
+Forgot Password
+
+Login Button
+
+Create Account
+
+Remember Login
+
+---
+
+# USER DASHBOARD
+
+Display Welcome Message
+
+Hello,
+
+(User Name)
+
+Today's Water Usage
+
+Current Month Usage
+
+Current Water Bill
+
+Current Pressure
+
+Battery Status
+
+Current Flow Rate
+
+Valve Status
+
+Last Updated
+
+---
+
+## Dashboard Cards
+
+Current Unit Consumption
+
+Today's Consumption
+
+Monthly Consumption
+
+Remaining Budget
+
+Estimated Bill
+
+Water Pressure
+
+Battery %
+
+Valve Status
+
+---
+
+## Live Water Monitoring
+
+Display
+
+Current Water Flow
+
+L/min
+
+Current Pressure Sensor 1
+
+Pressure Sensor 2
+
+Battery Voltage
+
+Hydro Generator Status
+
+Valve Status
+
+Real-time Updates
+
+---
+
+## Water Bill
+
+Calculate automatically according to Sri Lankan National Water Supply tariff.
+
+Display
+
+Used Units
+
+Price per Unit
+
+Fixed Charge
+
+Tax
+
+Total Bill
+
+Due Date
+
+Bill Status
+
+Green
+
+Orange
+
+Red
+
+---
+
+## Bill Alert
+
+When bill exceeds limit
+
+Show
+
+Red Alert
+
+Send Push Notification
+
+Government Dashboard receives alert.
+
+---
+
+## Monthly Report
+
+Charts
+
+Daily Usage
+
+Weekly Usage
+
+Monthly Usage
+
+Annual Usage
+
+Average Consumption
+
+Highest Consumption
+
+Lowest Consumption
+
+Water Saving Percentage
+
+---
+
+## Analytics
+
+Bar Graph
+
+Line Graph
+
+Pie Chart
+
+Monthly Comparison
+
+Yearly Comparison
+
+---
+
+## User Profile
+
+Name
+
+NIC
+
+Phone
+
+Email
+
+Address
+
+Water Meter ID
+
+Update Profile
+
+Change Password
+
+Logout
+
+---
+
+## Notifications
+
+High Water Usage
+
+Low Pressure
+
+Leak Detection
+
+Bill Due
+
+Valve Closed
+
+Battery Low
+
+Government Notices
+
+---
+
+# GOVERNMENT MOBILE APPLICATION
+
+Government Login
+
+Government Dashboard
+
+Admin Authentication
+
+Secure Access
+
+Role Based Authentication
+
+---
+
+# Government Dashboard
+
+Total Connected Users
+
+Online Devices
+
+Offline Devices
+
+Daily Water Usage
+
+Monthly Water Usage
+
+Total Revenue
+
+Leak Alerts
+
+Low Battery Devices
+
+Valve Closed Devices
+
+Red Bill Alerts
+
+Pressure Alerts
+
+---
+
+## User List
+
+Search User
+
+Filter User
+
+View User Details
+
+Each User Card Shows
+
+Name
+
+Meter ID
+
+NIC
+
+Phone
+
+Current Unit
+
+Current Bill
+
+Valve Status
+
+Battery %
+
+Online Status
+
+---
+
+## User Details
+
+Display
+
+Complete User Profile
+
+Current Water Usage
+
+Current Bill
+
+Pressure Sensor 1
+
+Pressure Sensor 2
+
+Battery %
+
+Hydro Generator Status
+
+Flow Rate
+
+Current Valve Position
+
+Location
+
+Historical Reports
+
+Graphs
+
+---
+
+## Remote Control
+
+Government can
+
+Open Solenoid Valve
+
+Close Solenoid Valve
+
+Restart ESP32
+
+Reset Device
+
+Send Warning Message
+
+Enable Emergency Shutdown
+
+---
+
+## Red Bill Alert
+
+When user does not pay bill
+
+Automatically
+
+Bill becomes Red
+
+Government receives notification
+
+Government can
+
+Close Solenoid Valve
+
+Open Solenoid Valve
+
+Send Payment Reminder
+
+Mark Bill Paid
+
+---
+
+## Device Monitoring
+
+Current Flow
+
+Pressure
+
+Voltage
+
+Current
+
+Battery %
+
+Charging Status
+
+Hydro Generator Output
+
+ESP32 Online Status
+
+WiFi Signal
+
+Last Sync
+
+---
+
+## Analytics
+
+Water Usage
+
+District Wise
+
+Area Wise
+
+Daily
+
+Weekly
+
+Monthly
+
+Yearly
+
+Revenue Collection
+
+Leak Detection
+
+Pressure Analysis
+
+Battery Health
+
+---
+
+# Firebase Structure
+
+```
+users
+
+uid
+firstName
+lastName
+NIC
+phone
+email
+
+devices
+
+deviceID
+uid
+flowRate
+pressure1
+pressure2
+battery
+hydroGenerator
+valveStatus
+unit
+bill
+online
+timestamp
+
+billing
+
+billID
+uid
+month
+year
+units
+price
+status
+
+alerts
+
+alertID
+uid
+type
+message
+status
+
+notifications
+
+notificationID
+uid
+title
+message
+timestamp
+```
+
+---
+
+# ESP32 Data
+
+Receive
+
+Flow Rate
+
+Total Units
+
+Pressure Sensor 1
+
+Pressure Sensor 2
+
+Battery %
+
+Hydro Generator Voltage
+
+Valve Status
+
+Device Status
+
+Timestamp
+
+Store automatically into Firebase.
+
+---
+
+# UI Design
+
+Premium Modern Dashboard
+
+Glassmorphism
+
+Material Design 3
+
+Rounded Cards
+
+Animated Charts
+
+Smooth Navigation
+
+Bottom Navigation
+
+Dark Mode
+
+Light Mode
+
+Professional Icons
+
+Lottie Animations
+
+Gradient Background
+
+Responsive Layout
+
+---
+
+# Required Screens
+
+### User App
+
+* Splash Screen
+* Login
+* Register
+* Forgot Password
+* Dashboard
+* Live Water Monitoring
+* Water Bill
+* Monthly Report
+* Annual Report
+* Notifications
+* User Profile
+* Settings
+* Help & Support
+
+---
+
+### Government App
+
+* Splash Screen
+* Login
+* Dashboard
+* User Management
+* Device Monitoring
+* Analytics
+* Alerts
+* Bill Management
+* Solenoid Valve Control
+* Reports
+* Notifications
+* Profile
+* Settings
+
+---
+
+# Additional Features
+
+* Real-time Firebase Synchronization
+* Offline Data Cache
+* Push Notifications
+* Leak Detection Alerts
+* Low Pressure Alerts
+* High Usage Alerts
+* Battery Low Alerts
+* Emergency Valve Shutdown
+* QR Code Device Registration
+* Export Reports (PDF/Excel)
+* Multi-language Support (English, Sinhala, Tamil)
+* Secure Role-Based Authentication (User/Admin)
+* Device Online/Offline Status
+* Automatic Bill Calculation (Sri Lanka Water Tariff)
+* Historical Data Storage
+* Search and Filter Users
+* User Activity Logs
+* Admin Audit Logs
+* Secure Firebase Security Rules
+* Clean, scalable React Native JavaScript code with reusable components and comments.
+
+This prompt gives an AI coding assistant enough detail to generate a complete **React Native + Firebase IoT Smart Water Meter application** with separate **User** and **Government** apps, real-time ESP32 integration, professional UI/UX, analytics, billing, alerts, and remote solenoid valve control.
