@@ -54,20 +54,6 @@ bool ledCommandOn = false;        // authoritative local state
 String lastAppliedCommandId = ""; // duplicate-command guard
 
 // ---------------- Helpers ----------------
-WiFiClientSecure& getSecureClient() {
-  static WiFiClientSecure client;
-  return client;
-}
-
-bool apiBegin(HTTPClient& http, const String& url) {
-  if (!API_USE_HTTPS) return http.begin(url);
-  WiFiClientSecure& client = getSecureClient();
-  client.setInsecure();               // TODO production: pin the server CA cert
-  bool ok = http.begin(client, url);
-  if (ok) http.setTimeout(HTTP_TIMEOUT_MS);
-  return ok;
-}
-
 void setLed(bool on) {
   digitalWrite(ONBOARD_LED_PIN, on ? HIGH : LOW);
   digitalWrite(EXT_LED_PIN,     on ? HIGH : LOW);
@@ -111,6 +97,20 @@ String jsonStr(const String& body, const String& key) {
   int end = body.indexOf('"', start);
   if (end < 0) return "";
   return body.substring(start, end);
+}
+
+WiFiClientSecure& getSecureClient() {
+  static WiFiClientSecure client;
+  return client;
+}
+
+bool apiBegin(HTTPClient& http, const String& url) {
+  if (!API_USE_HTTPS) return http.begin(url);
+  WiFiClientSecure& client = getSecureClient();
+  client.setInsecure();               // TODO production: pin the server CA cert
+  bool ok = http.begin(client, url);
+  if (ok) http.setTimeout(HTTP_TIMEOUT_MS);
+  return ok;
 }
 
 void sendAck(const String& commandId, bool success) {
@@ -191,12 +191,6 @@ void pollCommands() {
   }
   Serial.println("[POLL] all retries failed");
 }
-    return;
-  }
-
-  Serial.printf("[POLL] failed: HTTP %d\n", code);
-  http.end();
-}
 
 // Keep sending readings so the dashboard shows the device online
 void sendReading() {
@@ -219,8 +213,6 @@ void sendReading() {
     if (attempt < 3) delay(1000 * attempt);
   }
   Serial.println("[READ] all retries failed");
-}
-  http.end();
 }
 
 // After boot: ask the server what the LED should be: {"on":true|false|null}
@@ -253,11 +245,6 @@ void restoreState() {
   Serial.println("[STATE] all retries failed — starting OFF");
   ledCommandOn = false;
   setLed(false);
-}
-  } else {
-    Serial.printf("[STATE] restore failed: HTTP %d\n", code);
-  }
-  http.end();
 }
 
 // ---------------- Main ----------------
