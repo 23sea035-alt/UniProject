@@ -8,7 +8,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
-import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import * as Haptics from 'expo-haptics';
 
 export default function LoginScreen() {
@@ -18,7 +18,6 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('user');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -29,10 +28,11 @@ export default function LoginScreen() {
     }
     setLoading(true);
     try {
-      await login(email, password, role);
+      await login(email, password);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      Alert.alert('Login Failed', 'Invalid credentials. Please try again.');
+      router.replace('/(user)/dashboard');
+    } catch (e: any) {
+      Alert.alert('Login Failed', e?.message || 'Invalid credentials. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -60,12 +60,6 @@ export default function LoginScreen() {
       paddingHorizontal: 24, paddingTop: 30,
     },
     scrollContent: { paddingBottom: Math.max(insets.bottom + 20, 40) },
-    roleRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
-    roleBtn: {
-      flex: 1, paddingVertical: 12, borderRadius: 14, borderWidth: 2,
-      alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8,
-    },
-    roleTxt: { fontSize: 14, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
     lbl: {
       fontSize: 11, fontWeight: '600', color: colors.mutedForeground,
       marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.8,
@@ -86,16 +80,8 @@ export default function LoginScreen() {
     registerRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center' },
     registerTxt: { fontSize: 14, color: colors.mutedForeground, fontFamily: 'Inter_400Regular' },
     registerLink: { fontSize: 14, color: colors.primary, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
-    demoBox: { backgroundColor: colors.secondary, borderRadius: 12, padding: 14, marginTop: 20, borderLeftWidth: 3, borderLeftColor: colors.primary },
-    demoTitle: { fontSize: 12, fontWeight: '700', color: colors.primary, marginBottom: 4, fontFamily: 'Inter_700Bold' },
-    demoTxt: { fontSize: 12, color: colors.mutedForeground, fontFamily: 'Inter_400Regular', lineHeight: 18 },
     sectionTitle: { fontSize: 18, fontWeight: '700', color: colors.foreground, fontFamily: 'Inter_700Bold', marginBottom: 18 },
   });
-
-  const roles: { value: UserRole; label: string; icon: string }[] = [
-    { value: 'user', label: 'Resident', icon: 'user' },
-    { value: 'government', label: 'Authority', icon: 'shield' },
-  ];
 
   return (
     <KeyboardAvoidingView style={s.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
@@ -111,24 +97,6 @@ export default function LoginScreen() {
         <View style={s.body}>
           <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={s.scrollContent}>
             <Text style={s.sectionTitle}>Sign In</Text>
-
-            <View style={s.roleRow}>
-              {roles.map(r => (
-                <TouchableOpacity
-                  key={r.value}
-                  style={[s.roleBtn, {
-                    borderColor: role === r.value ? colors.primary : colors.border,
-                    backgroundColor: role === r.value ? colors.secondary : 'transparent',
-                  }]}
-                  onPress={() => { setRole(r.value); Haptics.selectionAsync(); }}
-                >
-                  <Feather name={r.icon as any} size={15} color={role === r.value ? colors.primary : colors.mutedForeground} />
-                  <Text style={[s.roleTxt, { color: role === r.value ? colors.primary : colors.mutedForeground }]}>
-                    {r.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
 
             <Text style={s.lbl}>Email Address</Text>
             <View style={s.inputRow}>
@@ -169,13 +137,6 @@ export default function LoginScreen() {
               <TouchableOpacity onPress={() => router.push('/auth/register')}>
                 <Text style={s.registerLink}>Create Account</Text>
               </TouchableOpacity>
-            </View>
-
-            <View style={s.demoBox}>
-              <Text style={s.demoTitle}>Demo Credentials</Text>
-              <Text style={s.demoTxt}>
-                {'Resident: kasun@demo.lk / any password\nAuthority: admin@nwsdb.lk / any password'}
-              </Text>
             </View>
           </ScrollView>
         </View>

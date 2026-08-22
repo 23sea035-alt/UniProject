@@ -1,0 +1,7 @@
+{
+  "/users/page": "app/users/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/payments/page": "app/payments/page.js",
+  "/valve-control/page": "app/valve-control/page.js",
+  "/tariff-config/page": "app/tariff-config/page.js"
+}

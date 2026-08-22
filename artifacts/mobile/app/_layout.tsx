@@ -26,7 +26,6 @@ function RootLayoutNav() {
       <Stack.Screen name="index" />
       <Stack.Screen name="auth" />
       <Stack.Screen name="(user)" />
-      <Stack.Screen name="(government)" />
     </Stack>
   );
 }

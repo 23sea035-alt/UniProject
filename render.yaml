@@ -1,0 +1,20 @@
+# Render.com blueprint - deploy with "New +" -> "Blueprint" in Render dashboard
+services:
+  - type: web
+    name: aquatrack-api
+    runtime: docker
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/healthz
+    autoDeploy: true
+    envVars:
+      - key: FIREBASE_SERVICE_ACCOUNT_B64
+        sync: false          # paste base64 of service-account.json in dashboard
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FIREBASE_PROJECT_ID
+        value: simple-4b447
+      - key: NODE_ENV
+        value: production
+      # Render injects PORT automatically; index.ts reads it

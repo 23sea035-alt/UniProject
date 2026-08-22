@@ -1,0 +1,125 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if request is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to get officer profile
+    function getOfficer() {
+      return get(/databases/$(database)/documents/governmentOfficers/$(request.auth.uid)).data;
+    }
+    
+    // Check if user is an active government officer
+    function isGovernmentOfficer() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/governmentOfficers/$(request.auth.uid)) &&
+             getOfficer().active == true;
+    }
+    
+    // Check officer roles
+    function isSuperAdmin() {
+      return isGovernmentOfficer() && getOfficer().role == 'SUPER_ADMIN';
+    }
+    
+    function isSupervisor() {
+      return isGovernmentOfficer() && (getOfficer().role == 'SUPERVISOR' || getOfficer().role == 'SUPER_ADMIN');
+    }
+    
+    function isOfficer() {
+      return isGovernmentOfficer();
+    }
+    
+    // Check if request is from the registered customer
+    function isCustomerOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // 1. Users collection
+    match /users/{userId} {
+      // Mobile app customer can read their own profile; government officers can read all
+      allow read: if isGovernmentOfficer() || isCustomerOwner(userId);
+      // Registration from mobile app allowed for auth user; updates by officers or user own basic profile
+      allow create: if isAuthenticated();
+      allow update: if isGovernmentOfficer() || (isCustomerOwner(userId) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['status', 'valveStatus', 'tariffCategory', 'currentBillAmount', 'billStatus']));
+      allow delete: if isSuperAdmin();
+
+      // Subcollections (usage/daily/entries, usage/monthly/entries, sensorData, etc.)
+      // Server writes via Admin SDK bypass rules; clients get read-only access
+      match /{subCollection=**} {
+        allow read: if isGovernmentOfficer() || isCustomerOwner(userId);
+        allow write: if false;
+      }
+    }
+    
+    // 2. Devices collection (ESP32 Smart Water Meters)
+    match /devices/{deviceId} {
+      allow read: if isGovernmentOfficer() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // ESP32 device writes telemetry via verified token or Cloud Functions; Officers can manage
+      allow write: if isGovernmentOfficer();
+    }
+    
+    // 3. Water Readings / Telemetry
+    match /waterReadings/{readingId} {
+      allow read: if isGovernmentOfficer() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      allow create: if isAuthenticated(); // ESP32 or synced service
+      allow update, delete: if isSuperAdmin();
+    }
+    
+    // 4. Bills collection
+    match /bills/{billId} {
+      allow read: if isGovernmentOfficer() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      // Only Cloud Functions or authorized officers can create/update bills
+      allow create, update: if isOfficer();
+      allow delete: if isSuperAdmin();
+    }
+    
+    // 5. Payments collection
+    match /payments/{paymentId} {
+      allow read: if isGovernmentOfficer() || (isAuthenticated() && resource.data.customerId == request.auth.uid);
+      // Created via payment gateway webhook or officer manual verification
+      allow create: if isAuthenticated();
+      allow update: if isOfficer();
+      allow delete: if isSuperAdmin();
+    }
+    
+    // 6. Valve Commands collection
+    match /valveCommands/{commandId} {
+      allow read: if isGovernmentOfficer() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // Only authorized officers can create valve commands; ESP32 updates status
+      allow create: if isOfficer();
+      allow update: if isGovernmentOfficer() || isAuthenticated(); // ESP32 updates ACK
+      allow delete: if isSuperAdmin();
+    }
+    
+    // 7. Notifications collection
+    match /notifications/{notifId} {
+      allow read: if isGovernmentOfficer() || (isAuthenticated() && resource.data.recipientCustomerId == request.auth.uid);
+      allow create: if isOfficer();
+      allow update, delete: if isSuperAdmin();
+    }
+    
+    // 8. Immutable Audit Logs
+    match /auditLogs/{logId} {
+      allow read: if isGovernmentOfficer();
+      // Audit logs are append-only; NEVER updatable or deletable, even by Super Admin (Government Compliance)
+      allow create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+    
+    // 9. Tariff Configurations
+    match /tariffs/{tariffId} {
+      allow read: if isAuthenticated();
+      // Only Super Admin can modify tariff structures
+      allow write: if isSuperAdmin();
+    }
+    
+    // 10. Government Officers Directory
+    match /governmentOfficers/{officerId} {
+      allow read: if isGovernmentOfficer();
+      allow write: if isSuperAdmin();
+    }
+  }
+}

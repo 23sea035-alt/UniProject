@@ -1,5 +1,14 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  signOut,
+  sendPasswordResetEmail,
+  User as FirebaseUser,
+} from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { auth, db } from '@/lib/firebase';
 
 export type UserRole = 'user' | 'government';
 
@@ -19,37 +28,14 @@ interface AuthState {
   user: UserProfile | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string, role: UserRole) => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (data: {
     firstName: string; lastName: string; email: string; nic: string;
     phone: string; password: string; role: UserRole;
   }) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
-
-const DEMO_USER: UserProfile = {
-  uid: 'user-001',
-  firstName: 'Kasun',
-  lastName: 'Perera',
-  email: 'kasun@demo.lk',
-  nic: '199512345678',
-  phone: '0771234567',
-  address: '42/A, Galle Road, Colombo 3',
-  meterId: 'WM-2024-COL-0042',
-  role: 'user',
-};
-
-const DEMO_GOV: UserProfile = {
-  uid: 'gov-001',
-  firstName: 'Nimal',
-  lastName: 'Silva',
-  email: 'admin@nwsdb.lk',
-  nic: '198045678901',
-  phone: '0112345678',
-  address: 'NWSDB Head Office, Torrington Square, Colombo 2',
-  meterId: 'GOV-ADM-001',
-  role: 'government',
-};
 
 const AuthContext = createContext<AuthState | undefined>(undefined);
 
@@ -58,17 +44,47 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    AsyncStorage.getItem('auth_user').then((stored) => {
-      if (stored) {
-        try { setUser(JSON.parse(stored)); } catch {}
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: FirebaseUser | null) => {
+      if (firebaseUser) {
+        let profile = await loadUserProfile(firebaseUser.uid);
+        if (!profile) {
+          profile = {
+            uid: firebaseUser.uid,
+            firstName: '',
+            lastName: '',
+            email: firebaseUser.email || '',
+            nic: '',
+            phone: '',
+            address: '',
+            meterId: '',
+            role: 'user',
+          };
+        }
+        setUser(profile);
+      } else {
+        setUser(null);
       }
       setIsLoading(false);
     });
+    return unsubscribe;
   }, []);
 
-  const login = async (_email: string, _password: string, role: UserRole) => {
-    const profile = role === 'government' ? { ...DEMO_GOV } : { ...DEMO_USER };
-    await AsyncStorage.setItem('auth_user', JSON.stringify(profile));
+  const login = async (email: string, password: string) => {
+    const result = await signInWithEmailAndPassword(auth, email, password);
+    let profile = await loadUserProfile(result.user.uid);
+    if (!profile) {
+      profile = {
+        uid: result.user.uid,
+        firstName: '',
+        lastName: '',
+        email: result.user.email || '',
+        nic: '',
+        phone: '',
+        address: '',
+        meterId: '',
+        role: 'user',
+      };
+    }
     setUser(profile);
   };
 
@@ -76,31 +92,62 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     firstName: string; lastName: string; email: string; nic: string;
     phone: string; password: string; role: UserRole;
   }) => {
+    const result = await createUserWithEmailAndPassword(auth, data.email, data.password);
+    const meterId = data.role === 'government'
+      ? `GOV-${Date.now()}`
+      : `WM-${Date.now()}`;
+
     const profile: UserProfile = {
-      uid: `user-${Date.now()}`,
+      uid: result.user.uid,
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
       nic: data.nic,
       phone: data.phone,
       address: '',
-      meterId: `WM-${Date.now()}`,
+      meterId,
       role: data.role,
     };
-    await AsyncStorage.setItem('auth_user', JSON.stringify(profile));
+
+    try {
+      await setDoc(doc(db, 'users', result.user.uid), {
+        ...profile,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    } catch (firestoreErr) {
+      console.warn('Firestore write failed, user auth created but profile not saved:', firestoreErr);
+    }
+
     setUser(profile);
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem('auth_user');
+    await signOut(auth);
     setUser(null);
   };
 
+  const resetPassword = async (email: string) => {
+    await sendPasswordResetEmail(auth, email);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, logout, register }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated: !!user, login, logout, register, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );
+}
+
+async function loadUserProfile(uid: string): Promise<UserProfile | null> {
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) return null;
+    const data = snap.data() as UserProfile;
+    return data;
+  } catch (e) {
+    console.warn('Failed to load user profile:', e);
+    return null;
+  }
 }
 
 export function useAuth() {

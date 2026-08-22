@@ -1,0 +1,12 @@
+{
+  "name": "esp32-smart-water-meter",
+  "version": "1.0.0",
+  "description": "IoT Smart Water Meter firmware for ESP32",
+  "dependencies": [
+    {
+      "name": "ArduinoJson",
+      "author": "Benoit Blanchon",
+      "version": "^7.0.0"
+    }
+  ]
+}

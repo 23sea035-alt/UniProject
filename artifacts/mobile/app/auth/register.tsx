@@ -46,8 +46,9 @@ export default function RegisterScreen() {
     try {
       await register({ ...form, role });
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    } catch {
-      Alert.alert('Error', 'Registration failed. Please try again.');
+      router.replace('/(user)/dashboard');
+    } catch (e: any) {
+      Alert.alert('Registration Failed', e?.message || 'Unknown error. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -100,16 +101,11 @@ export default function RegisterScreen() {
       <ScrollView style={s.scroll} contentContainerStyle={s.content} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
         <Text style={[s.sectionHdr, { marginTop: 0 }]}>Account Type</Text>
         <View style={s.roleRow}>
-          {(['user', 'government'] as UserRole[]).map(r => (
-            <TouchableOpacity key={r}
-              style={[s.roleBtn, { borderColor: role === r ? colors.primary : colors.border, backgroundColor: role === r ? colors.secondary : 'transparent' }]}
-              onPress={() => { setRole(r); Haptics.selectionAsync(); }}>
-              <Feather name={r === 'user' ? 'user' : 'shield'} size={14} color={role === r ? colors.primary : colors.mutedForeground} />
-              <Text style={[s.roleTxt, { color: role === r ? colors.primary : colors.mutedForeground }]}>
-                {r === 'user' ? 'Resident' : 'Gov. Authority'}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          <TouchableOpacity key="user"
+            style={[s.roleBtn, { borderColor: colors.primary, backgroundColor: colors.secondary }]}>
+            <Feather name="user" size={14} color={colors.primary} />
+            <Text style={[s.roleTxt, { color: colors.primary }]}>Resident</Text>
+          </TouchableOpacity>
         </View>
 
         <Text style={s.sectionHdr}>Personal Information</Text>

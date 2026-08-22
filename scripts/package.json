@@ -5,7 +5,14 @@
   "type": "module",
   "scripts": {
     "hello": "tsx ./src/hello.ts",
+    "seed": "node ./src/seed-firestore.mjs",
+    "seed:device": "npx tsx ./src/seed-device.ts",
+    "link-meter": "npx tsx ./src/link-meter-user.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "firebase": "^11.8.1",
+    "firebase-admin": "^12.6.0"
   },
   "devDependencies": {
     "@types/node": "catalog:",

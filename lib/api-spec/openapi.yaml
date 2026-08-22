@@ -1,15 +1,32 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Smart Water Meter Backend API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
+    description: Health check
+  - name: auth
+    description: Authentication and user registration
+  - name: meters
+    description: Water meter management
+  - name: readings
+    description: Meter readings ingestion and retrieval
+  - name: bills
+    description: Billing and invoice management
+  - name: payments
+    description: Payment processing and webhooks
+  - name: valve
+    description: Remote valve control
+  - name: notifications
+    description: User notifications
+  - name: admin
+    description: Administrative operations
+security:
+  - bearerAuth: []
 paths:
   /healthz:
     get:
@@ -17,6 +34,7 @@ paths:
       tags: [health]
       summary: Health check
       description: Returns server health status
+      security: []
       responses:
         "200":
           description: Healthy
@@ -24,13 +42,1729 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Email already registered
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with email and password
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /meters:
+    get:
+      operationId: listMeters
+      tags: [meters]
+      summary: List all meters
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, inactive, suspended]
+      responses:
+        "200":
+          description: List of meters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeterListResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createMeter
+      tags: [meters]
+      summary: Register a new meter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMeterRequest"
+      responses:
+        "201":
+          description: Meter created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meter"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Meter serial already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /meters/{id}:
+    get:
+      operationId: getMeter
+      tags: [meters]
+      summary: Get meter by ID
+      parameters:
+        - $ref: "#/components/parameters/MeterId"
+      responses:
+        "200":
+          description: Meter details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Meter"
+        "404":
+          description: Meter not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /meters/{id}/status:
+    get:
+      operationId: getMeterStatus
+      tags: [meters]
+      summary: Get meter real-time status
+      parameters:
+        - $ref: "#/components/parameters/MeterId"
+      responses:
+        "200":
+          description: Meter status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeterStatus"
+        "404":
+          description: Meter not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /meters/{id}/consumption:
+    get:
+      operationId: getMeterConsumption
+      tags: [meters]
+      summary: Get meter consumption history
+      parameters:
+        - $ref: "#/components/parameters/MeterId"
+        - name: period
+          in: query
+          schema:
+            type: string
+            enum: [daily, weekly, monthly]
+            default: daily
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Consumption data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConsumptionResponse"
+        "404":
+          description: Meter not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /readings:
+    get:
+      operationId: listReadings
+      tags: [readings]
+      summary: List meter readings
+      parameters:
+        - name: meterId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: List of readings
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReadingListResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createReading
+      tags: [readings]
+      summary: Submit a meter reading (ESP32 device)
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReadingRequest"
+      responses:
+        "201":
+          description: Reading recorded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MeterReading"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /bills:
+    get:
+      operationId: listBills
+      tags: [bills]
+      summary: List all bills
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, paid, overdue, cancelled]
+        - name: meterId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: List of bills
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillListResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /bills/current:
+    get:
+      operationId: getCurrentBill
+      tags: [bills]
+      summary: Get current billing period bill
+      parameters:
+        - name: meterId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Current bill
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bill"
+        "404":
+          description: No current bill found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /bills/history:
+    get:
+      operationId: getBillHistory
+      tags: [bills]
+      summary: Get billing history
+      parameters:
+        - name: meterId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: months
+          in: query
+          schema:
+            type: integer
+            default: 12
+      responses:
+        "200":
+          description: Billing history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BillHistoryResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /bills/generate:
+    post:
+      operationId: generateBill
+      tags: [bills, admin]
+      summary: Generate a bill for a meter
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateBillRequest"
+      responses:
+        "201":
+          description: Bill generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Bill"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /payments/create:
+    post:
+      operationId: createPayment
+      tags: [payments]
+      summary: Create a payment for a bill
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreatePaymentRequest"
+      responses:
+        "201":
+          description: Payment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+        "400":
+          description: Validation error or bill already paid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /payments/webhook:
+    post:
+      operationId: paymentWebhook
+      tags: [payments]
+      summary: Receive payment provider webhook
+      description: Callback endpoint for payment gateways
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentWebhookPayload"
+      responses:
+        "200":
+          description: Webhook acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WebhookAckResponse"
+        "400":
+          description: Invalid webhook payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /payments/history:
+    get:
+      operationId: getPaymentHistory
+      tags: [payments]
+      summary: Get payment history
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, completed, failed, refunded]
+      responses:
+        "200":
+          description: Payment history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentListResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /valve/status/{meterId}:
+    get:
+      operationId: getValveStatus
+      tags: [valve]
+      summary: Get valve status for a meter
+      parameters:
+        - name: meterId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Valve status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValveStatus"
+        "404":
+          description: Meter or valve not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /valve/command:
+    post:
+      operationId: sendValveCommand
+      tags: [valve]
+      summary: Send open/close command to a valve
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValveCommand"
+      responses:
+        "200":
+          description: Command sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValveCommandResponse"
+        "400":
+          description: Invalid command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Meter or valve not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /valve/pending/{deviceId}:
+    get:
+      operationId: getPendingValveCommands
+      tags: [valve]
+      summary: Get pending valve commands for a device
+      description: Used by ESP32 devices to poll for queued commands
+      security:
+        - apiKeyAuth: []
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Pending commands (may be empty array)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PendingCommandsResponse"
+        "404":
+          description: Device not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /valve/acknowledge:
+    post:
+      operationId: acknowledgeValveCommand
+      tags: [valve]
+      summary: Acknowledge execution of a valve command
+      description: Called by ESP32 after executing a valve command
+      security:
+        - apiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ValveAckRequest"
+      responses:
+        "200":
+          description: Command acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValveAckResponse"
+        "400":
+          description: Invalid acknowledgement
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /notifications:
+    get:
+      operationId: listNotifications
+      tags: [notifications]
+      summary: List user notifications
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: unread
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Notifications list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NotificationListResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /notifications/{id}/read:
+    post:
+      operationId: markNotificationRead
+      tags: [notifications]
+      summary: Mark a notification as read
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Notification marked as read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "404":
+          description: Notification not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/dashboard:
+    get:
+      operationId: getDashboard
+      tags: [admin]
+      summary: Get admin dashboard statistics
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardStats"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not authorized (admin only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/users:
+    get:
+      operationId: listUsers
+      tags: [admin]
+      summary: List all users
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [user, admin, operator]
+        - name: search
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserListResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not authorized (admin only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/tariffs:
+    post:
+      operationId: createTariff
+      tags: [admin]
+      summary: Create a new tariff
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTariffRequest"
+      responses:
+        "201":
+          description: Tariff created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Tariff"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not authorized (admin only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/config:
+    get:
+      operationId: getConfig
+      tags: [admin]
+      summary: Get system configuration
+      responses:
+        "200":
+          description: System configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemConfig"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not authorized (admin only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: updateConfig
+      tags: [admin]
+      summary: Update system configuration
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateConfigRequest"
+      responses:
+        "200":
+          description: Updated configuration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SystemConfig"
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not authorized (admin only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [admin]
+      summary: Get audit logs
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        "200":
+          description: Audit logs
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuditLogListResponse"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Not authorized (admin only)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-Api-Key
+  parameters:
+    MeterId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
-
+    User:
+      type: object
+      required: [id, email, name, role, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+        role:
+          type: string
+          enum: [user, admin, operator]
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    Meter:
+      type: object
+      required: [id, serialNumber, status, ownerId, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        serialNumber:
+          type: string
+        status:
+          type: string
+          enum: [active, inactive, suspended]
+        type:
+          type: string
+          enum: [residential, commercial, industrial]
+        installDate:
+          type: string
+          format: date
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+        ownerId:
+          type: string
+          format: uuid
+        deviceId:
+          type: string
+          nullable: true
+        lastReading:
+          type: number
+          format: double
+          nullable: true
+        lastReadingAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    MeterReading:
+      type: object
+      required: [id, meterId, readingValue, timestamp]
+      properties:
+        id:
+          type: string
+          format: uuid
+        meterId:
+          type: string
+          format: uuid
+        readingValue:
+          type: number
+          format: double
+        unit:
+          type: string
+          default: m3
+        timestamp:
+          type: string
+          format: date-time
+        createdAt:
+          type: string
+          format: date-time
+    Bill:
+      type: object
+      required: [id, meterId, amount, status, billingPeriodStart, billingPeriodEnd, dueDate]
+      properties:
+        id:
+          type: string
+          format: uuid
+        meterId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          default: USD
+        status:
+          type: string
+          enum: [pending, paid, overdue, cancelled]
+        billingPeriodStart:
+          type: string
+          format: date
+        billingPeriodEnd:
+          type: string
+          format: date
+        consumption:
+          type: number
+          format: double
+        consumptionUnit:
+          type: string
+          default: m3
+        tariffRate:
+          type: number
+          format: double
+          nullable: true
+        fixedCharges:
+          type: number
+          format: double
+          nullable: true
+        tax:
+          type: number
+          format: double
+          nullable: true
+        totalAmount:
+          type: number
+          format: double
+        dueDate:
+          type: string
+          format: date
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    Payment:
+      type: object
+      required: [id, billId, amount, status, method, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        billId:
+          type: string
+          format: uuid
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+          default: USD
+        status:
+          type: string
+          enum: [pending, completed, failed, refunded]
+        method:
+          type: string
+          enum: [credit_card, debit_card, bank_transfer, mobile_money, cash]
+        reference:
+          type: string
+          nullable: true
+        gatewayTransactionId:
+          type: string
+          nullable: true
+        paidAt:
+          type: string
+          format: date-time
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+    ValveCommand:
+      type: object
+      required: [meterId, command]
+      properties:
+        meterId:
+          type: string
+          format: uuid
+        command:
+          type: string
+          enum: [open, close]
+        reason:
+          type: string
+          nullable: true
+        requestedBy:
+          type: string
+          nullable: true
+    ValveStatus:
+      type: object
+      required: [meterId, state, lastUpdated]
+      properties:
+        meterId:
+          type: string
+          format: uuid
+        state:
+          type: string
+          enum: [open, closed, unknown]
+        lastCommand:
+          type: string
+          nullable: true
+        lastCommandAt:
+          type: string
+          format: date-time
+          nullable: true
+        lastUpdated:
+          type: string
+          format: date-time
+    Notification:
+      type: object
+      required: [id, userId, title, message, type, read, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        message:
+          type: string
+        type:
+          type: string
+          enum: [info, warning, alert, bill, payment, system]
+        read:
+          type: boolean
+          default: false
+        link:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    AuditLog:
+      type: object
+      required: [id, userId, action, resourceType, timestamp]
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        userName:
+          type: string
+          nullable: true
+        action:
+          type: string
+        resourceType:
+          type: string
+        resourceId:
+          type: string
+          nullable: true
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+        ipAddress:
+          type: string
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+    Tariff:
+      type: object
+      required: [id, name, ratePerUnit, effectiveFrom]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        ratePerUnit:
+          type: number
+          format: double
+        unit:
+          type: string
+          default: m3
+        fixedCharge:
+          type: number
+          format: double
+          default: 0
+        taxRate:
+          type: number
+          format: double
+          default: 0
+        meterType:
+          type: string
+          enum: [residential, commercial, industrial, all]
+          default: all
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+    SystemConfig:
+      type: object
+      properties:
+        siteName:
+          type: string
+        defaultCurrency:
+          type: string
+        billGenerationDay:
+          type: integer
+          description: Day of month to auto-generate bills
+        paymentGracePeriodDays:
+          type: integer
+          description: Days after due date before bill becomes overdue
+        lowBalanceThreshold:
+          type: number
+          format: double
+        valveAutoShutoff:
+          type: boolean
+          description: Auto-shut valve when balance is depleted
+        readingIntervalMinutes:
+          type: integer
+          description: Expected ESP32 reading interval in minutes
+        maintenanceMode:
+          type: boolean
+          default: false
+        updatedAt:
+          type: string
+          format: date-time
+    DashboardStats:
+      type: object
+      properties:
+        totalUsers:
+          type: integer
+        totalMeters:
+          type: integer
+        activeMeters:
+          type: integer
+        totalRevenue:
+          type: number
+          format: double
+        pendingPayments:
+          type: integer
+        overdueBills:
+          type: integer
+        totalConsumption:
+          type: number
+          format: double
+          description: Total water consumption across all meters
+        averageConsumption:
+          type: number
+          format: double
+        recentReadings:
+          type: integer
+          description: Readings received in the last 24 hours
+        openValves:
+          type: integer
+        closedValves:
+          type: integer
+        recentActivity:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+    MeterStatus:
+      type: object
+      required: [meterId, online, valveState]
+      properties:
+        meterId:
+          type: string
+          format: uuid
+        online:
+          type: boolean
+        lastSeen:
+          type: string
+          format: date-time
+          nullable: true
+        batteryLevel:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+        signalStrength:
+          type: integer
+          nullable: true
+          description: RSSI signal strength
+        valveState:
+          type: string
+          enum: [open, closed, unknown]
+        currentReading:
+          type: number
+          format: double
+          nullable: true
+        firmwareVersion:
+          type: string
+          nullable: true
+    ConsumptionResponse:
+      type: object
+      required: [meterId, period, data]
+      properties:
+        meterId:
+          type: string
+          format: uuid
+        period:
+          type: string
+          enum: [daily, weekly, monthly]
+        totalConsumption:
+          type: number
+          format: double
+        data:
+          type: array
+          items:
+            type: object
+            required: [date, value]
+            properties:
+              date:
+                type: string
+                format: date
+              value:
+                type: number
+                format: double
+    ErrorResponse:
+      type: object
+      required: [error, message]
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        statusCode:
+          type: integer
+        details:
+          type: object
+          additionalProperties: true
+          nullable: true
+    RegisterRequest:
+      type: object
+      required: [email, password, name]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 8
+        name:
+          type: string
+        phone:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+    AuthResponse:
+      type: object
+      required: [token, user]
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/User"
+    CreateMeterRequest:
+      type: object
+      required: [serialNumber, ownerId]
+      properties:
+        serialNumber:
+          type: string
+        type:
+          type: string
+          enum: [residential, commercial, industrial]
+          default: residential
+        installDate:
+          type: string
+          format: date
+          nullable: true
+        location:
+          type: string
+          nullable: true
+        latitude:
+          type: number
+          format: double
+          nullable: true
+        longitude:
+          type: number
+          format: double
+          nullable: true
+        ownerId:
+          type: string
+          format: uuid
+        deviceId:
+          type: string
+          nullable: true
+          description: ESP32 device identifier
+    CreateReadingRequest:
+      type: object
+      required: [meterSerial, readingValue, timestamp]
+      properties:
+        meterSerial:
+          type: string
+          description: Meter serial number
+        readingValue:
+          type: number
+          format: double
+        unit:
+          type: string
+          default: m3
+        timestamp:
+          type: string
+          format: date-time
+        batteryLevel:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+        signalStrength:
+          type: integer
+          nullable: true
+    CreatePaymentRequest:
+      type: object
+      required: [billId, method]
+      properties:
+        billId:
+          type: string
+          format: uuid
+        method:
+          type: string
+          enum: [credit_card, debit_card, bank_transfer, mobile_money, cash]
+    PaymentWebhookPayload:
+      type: object
+      required: [transactionId, status]
+      properties:
+        transactionId:
+          type: string
+        paymentId:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [completed, failed]
+        gateway:
+          type: string
+          nullable: true
+        amount:
+          type: number
+          format: double
+          nullable: true
+        timestamp:
+          type: string
+          format: date-time
+        metadata:
+          type: object
+          additionalProperties: true
+          nullable: true
+    ValveAckRequest:
+      type: object
+      required: [commandId, success]
+      properties:
+        commandId:
+          type: string
+          format: uuid
+        success:
+          type: boolean
+        valveState:
+          type: string
+          enum: [open, closed]
+          nullable: true
+          description: Actual state after command execution
+        error:
+          type: string
+          nullable: true
+        executedAt:
+          type: string
+          format: date-time
+          nullable: true
+    ValveCommandResponse:
+      type: object
+      required: [commandId, meterId, command, status]
+      properties:
+        commandId:
+          type: string
+          format: uuid
+        meterId:
+          type: string
+          format: uuid
+        command:
+          type: string
+          enum: [open, close]
+        status:
+          type: string
+          enum: [queued, delivered]
+        createdAt:
+          type: string
+          format: date-time
+    WebhookAckResponse:
+      type: object
+      required: [received]
+      properties:
+        received:
+          type: boolean
+    ValveAckResponse:
+      type: object
+      required: [acknowledged]
+      properties:
+        acknowledged:
+          type: boolean
+    PendingCommandsResponse:
+      type: object
+      required: [commands]
+      properties:
+        commands:
+          type: array
+          items:
+            type: object
+            required: [id, command]
+            properties:
+              id:
+                type: string
+                format: uuid
+              command:
+                type: string
+                enum: [open, close]
+              meterSerial:
+                type: string
+              createdAt:
+                type: string
+                format: date-time
+    GenerateBillRequest:
+      type: object
+      required: [meterId]
+      properties:
+        meterId:
+          type: string
+          format: uuid
+        billingPeriodStart:
+          type: string
+          format: date
+          nullable: true
+        billingPeriodEnd:
+          type: string
+          format: date
+          nullable: true
+        tariffId:
+          type: string
+          format: uuid
+          nullable: true
+    CreateTariffRequest:
+      type: object
+      required: [name, ratePerUnit, effectiveFrom]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        ratePerUnit:
+          type: number
+          format: double
+        unit:
+          type: string
+          default: m3
+        fixedCharge:
+          type: number
+          format: double
+          default: 0
+        taxRate:
+          type: number
+          format: double
+          default: 0
+        meterType:
+          type: string
+          enum: [residential, commercial, industrial, all]
+          default: all
+        effectiveFrom:
+          type: string
+          format: date
+        effectiveTo:
+          type: string
+          format: date
+          nullable: true
+    UpdateConfigRequest:
+      type: object
+      properties:
+        siteName:
+          type: string
+        defaultCurrency:
+          type: string
+        billGenerationDay:
+          type: integer
+        paymentGracePeriodDays:
+          type: integer
+        lowBalanceThreshold:
+          type: number
+          format: double
+        valveAutoShutoff:
+          type: boolean
+        readingIntervalMinutes:
+          type: integer
+        maintenanceMode:
+          type: boolean
+    MeterListResponse:
+      type: object
+      required: [meters, total, page, limit]
+      properties:
+        meters:
+          type: array
+          items:
+            $ref: "#/components/schemas/Meter"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+    ReadingListResponse:
+      type: object
+      required: [readings, total, page, limit]
+      properties:
+        readings:
+          type: array
+          items:
+            $ref: "#/components/schemas/MeterReading"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+    BillListResponse:
+      type: object
+      required: [bills, total, page, limit]
+      properties:
+        bills:
+          type: array
+          items:
+            $ref: "#/components/schemas/Bill"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+    BillHistoryResponse:
+      type: object
+      required: [bills, totalConsumption, totalAmount]
+      properties:
+        bills:
+          type: array
+          items:
+            $ref: "#/components/schemas/Bill"
+        meterId:
+          type: string
+          format: uuid
+          nullable: true
+        totalConsumption:
+          type: number
+          format: double
+        totalAmount:
+          type: number
+          format: double
+    PaymentListResponse:
+      type: object
+      required: [payments, total, page, limit]
+      properties:
+        payments:
+          type: array
+          items:
+            $ref: "#/components/schemas/Payment"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+    NotificationListResponse:
+      type: object
+      required: [notifications, total, unreadCount]
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        total:
+          type: integer
+        unreadCount:
+          type: integer
+    UserListResponse:
+      type: object
+      required: [users, total, page, limit]
+      properties:
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+    AuditLogListResponse:
+      type: object
+      required: [logs, total, page, limit]
+      properties:
+        logs:
+          type: array
+          items:
+            $ref: "#/components/schemas/AuditLog"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer

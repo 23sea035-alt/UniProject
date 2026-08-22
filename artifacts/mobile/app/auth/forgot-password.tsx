@@ -5,12 +5,14 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useColors } from '@/hooks/useColors';
+import { useAuth } from '@/contexts/AuthContext';
 import * as Haptics from 'expo-haptics';
 
 export default function ForgotPasswordScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { resetPassword } = useAuth();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -18,10 +20,15 @@ export default function ForgotPasswordScreen() {
   const handleReset = async () => {
     if (!email.includes('@')) { Alert.alert('Invalid Email', 'Please enter a valid email address.'); return; }
     setLoading(true);
-    await new Promise(r => setTimeout(r, 1500));
-    setLoading(false);
-    setSent(true);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    try {
+      await resetPassword(email);
+      setSent(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    } catch {
+      Alert.alert('Error', 'Could not send reset link. Please check your email and try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const s = StyleSheet.create({

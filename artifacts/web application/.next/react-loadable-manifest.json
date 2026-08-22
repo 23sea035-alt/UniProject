@@ -1,0 +1,50 @@
+{
+  "..\\..\\..\\node_modules\\.pnpm\\jspdf@2.5.2\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> canvg": {
+    "id": "..\\..\\..\\node_modules\\.pnpm\\jspdf@2.5.2\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> canvg",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_canvg_3_0_11_node_modules_canvg_lib_index_es_js.js"
+    ]
+  },
+  "..\\..\\..\\node_modules\\.pnpm\\jspdf@2.5.2\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> dompurify": {
+    "id": "..\\..\\..\\node_modules\\.pnpm\\jspdf@2.5.2\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> dompurify",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_dompurify_2_5_9_node_modules_dompurify_dist_purify_js.js"
+    ]
+  },
+  "..\\..\\..\\node_modules\\.pnpm\\jspdf@2.5.2\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> html2canvas": {
+    "id": "..\\..\\..\\node_modules\\.pnpm\\jspdf@2.5.2\\node_modules\\jspdf\\dist\\jspdf.es.min.js -> html2canvas",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_html2canvas_1_4_1_node_modules_html2canvas_dist_html2canvas_js.js"
+    ]
+  },
+  "context\\AuthContext.tsx -> ../lib/firebase": {
+    "id": "context\\AuthContext.tsx -> ../lib/firebase",
+    "files": [
+      "static/chunks/_app-pages-browser_src_lib_firebase_ts.js"
+    ]
+  },
+  "context\\AuthContext.tsx -> firebase/auth": {
+    "id": "context\\AuthContext.tsx -> firebase/auth",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_firebase_10_14_1_node_modules_firebase_auth_dist_esm_ind-60a966.js"
+    ]
+  },
+  "context\\AuthContext.tsx -> firebase/firestore": {
+    "id": "context\\AuthContext.tsx -> firebase/firestore",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_firebase_10_14_1_node_modules_firebase_firestore_dist_es-c81b5c.js"
+    ]
+  },
+  "lib\\firebaseSync.ts -> ./firebase": {
+    "id": "lib\\firebaseSync.ts -> ./firebase",
+    "files": [
+      "static/chunks/_app-pages-browser_src_lib_firebase_ts.js"
+    ]
+  },
+  "lib\\firebaseSync.ts -> firebase/firestore": {
+    "id": "lib\\firebaseSync.ts -> firebase/firestore",
+    "files": [
+      "static/chunks/_app-pages-browser_node_modules_pnpm_firebase_10_14_1_node_modules_firebase_firestore_dist_es-c81b5c.js"
+    ]
+  }
+}

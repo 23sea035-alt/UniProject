@@ -11,7 +11,7 @@ export default function ProfileScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const { user, logout } = useAuth();
-  const [notifs, setNotifs] = useState({ highUsage: true, lowPressure: true, leakDetection: true, billDue: true, valveAlert: true, batteryLow: true });
+  const [notifs, setNotifs] = useState({ highUsage: true, lowPressure: true, leakDetection: true, billDue: true, valveAlert: true });
 
   const bottomPad = insets.bottom + 72 + (Platform.OS === 'web' ? 34 : 0);
   const topPad = Math.max(insets.top, Platform.OS === 'web' ? 67 : 0);
@@ -63,7 +63,6 @@ export default function ProfileScreen() {
     { key: 'leakDetection', label: 'Leak Detection', icon: 'alert-triangle', color: colors.destructive },
     { key: 'billDue', label: 'Bill Due Reminder', icon: 'file-text', color: colors.primary },
     { key: 'valveAlert', label: 'Valve Status Change', icon: 'settings', color: colors.info },
-    { key: 'batteryLow', label: 'Battery Low Warning', icon: 'battery', color: colors.warning },
   ];
 
   return (
@@ -81,7 +80,7 @@ export default function ProfileScreen() {
         <View style={s.card}>
           <Text style={s.cardTitle}>Personal Information</Text>
           {infoItems.map((item, i) => (
-            <View key={item.key} style={[s.infoRow, i === infoItems.length - 1 && { borderBottomWidth: 0 }]}>
+            <View key={item.label} style={[s.infoRow, i === infoItems.length - 1 && { borderBottomWidth: 0 }]}>
               <View style={s.infoIcon}>
                 <Feather name={item.icon as any} size={18} color={colors.primary} />
               </View>

@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Platform, StyleSheet, useColorScheme, View } from 'react-native';
 import { useColors } from '@/hooks/useColors';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { isLiquidGlassAvailable } from 'expo-glass-effect';
@@ -18,6 +20,9 @@ function NativeTabLayout() {
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="bill">
         <Icon sf={{ default: 'doc.text', selected: 'doc.text.fill' }} /><Label>Bill</Label>
+      </NativeTabs.Trigger>
+      <NativeTabs.Trigger name="payments">
+        <Icon sf={{ default: 'creditcard', selected: 'creditcard.fill' }} /><Label>Payments</Label>
       </NativeTabs.Trigger>
       <NativeTabs.Trigger name="reports">
         <Icon sf={{ default: 'chart.bar', selected: 'chart.bar.fill' }} /><Label>Reports</Label>
@@ -62,6 +67,7 @@ function ClassicTabLayout() {
       <Tabs.Screen name="dashboard" options={{ title: 'Home', tabBarIcon: ({ color }) => <Feather name="home" size={22} color={color} /> }} />
       <Tabs.Screen name="monitoring" options={{ title: 'Live', tabBarIcon: ({ color }) => <Feather name="activity" size={22} color={color} /> }} />
       <Tabs.Screen name="bill" options={{ title: 'Bill', tabBarIcon: ({ color }) => <Feather name="file-text" size={22} color={color} /> }} />
+      <Tabs.Screen name="payments" options={{ title: 'Payments', tabBarIcon: ({ color }) => <Feather name="credit-card" size={22} color={color} /> }} />
       <Tabs.Screen name="reports" options={{ title: 'Reports', tabBarIcon: ({ color }) => <Feather name="bar-chart-2" size={22} color={color} /> }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color }) => <Feather name="user" size={22} color={color} /> }} />
     </Tabs>
@@ -69,6 +75,17 @@ function ClassicTabLayout() {
 }
 
 export default function UserTabLayout() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/auth/login');
+    }
+  }, [isLoading, isAuthenticated]);
+
+  if (isLoading || !isAuthenticated) return null;
+
   if (isLiquidGlassAvailable()) return <NativeTabLayout />;
   return <ClassicTabLayout />;
 }

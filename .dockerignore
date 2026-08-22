@@ -1,0 +1,9 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.env
+**/.env
+artifacts/api-server/service-account.json
+attached_assets
+iot.txt

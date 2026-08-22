@@ -13,8 +13,6 @@ export default function Index() {
     if (isLoading) return;
     if (!isAuthenticated) {
       router.replace('/auth/login');
-    } else if (user?.role === 'government') {
-      router.replace('/(government)/dashboard');
     } else {
       router.replace('/(user)/dashboard');
     }

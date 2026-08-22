@@ -1,20 +1,31 @@
-// Export your models here. Add one export per file
-// export * from "./posts";
-//
-// Each model/table should ideally be split into different files.
-// Each model/table should define a Drizzle table, insert schema, and types:
-//
-//   import { pgTable, text, serial } from "drizzle-orm/pg-core";
-//   import { createInsertSchema } from "drizzle-zod";
-//   import { z } from "zod/v4";
-//
-//   export const postsTable = pgTable("posts", {
-//     id: serial("id").primaryKey(),
-//     title: text("title").notNull(),
-//   });
-//
-//   export const insertPostSchema = createInsertSchema(postsTable).omit({ id: true });
-//   export type InsertPost = z.infer<typeof insertPostSchema>;
-//   export type Post = typeof postsTable.$inferSelect;
+export { usersTable, insertUserSchema } from "./users";
+export type { InsertUser, User } from "./users";
 
-export {}
+export { metersTable, insertMeterSchema } from "./meters";
+export type { InsertMeter, Meter } from "./meters";
+
+export { meterReadingsTable, insertMeterReadingSchema } from "./readings";
+export type { InsertMeterReading, MeterReading } from "./readings";
+
+export {
+  tariffsTable,
+  insertTariffSchema,
+  systemConfigTable,
+  insertSystemConfigSchema,
+} from "./tariffs";
+export type { InsertTariff, Tariff, InsertSystemConfig, SystemConfig } from "./tariffs";
+
+export { billsTable, insertBillSchema } from "./billing";
+export type { InsertBill, Bill } from "./billing";
+
+export { paymentsTable, insertPaymentSchema } from "./payments";
+export type { InsertPayment, Payment } from "./payments";
+
+export { valveCommandsTable, insertValveCommandSchema } from "./valve-commands";
+export type { InsertValveCommand, ValveCommand } from "./valve-commands";
+
+export { notificationsTable, insertNotificationSchema } from "./notifications";
+export type { InsertNotification, Notification } from "./notifications";
+
+export { auditLogsTable, insertAuditLogSchema } from "./audit-logs";
+export type { InsertAuditLog, AuditLog } from "./audit-logs";
