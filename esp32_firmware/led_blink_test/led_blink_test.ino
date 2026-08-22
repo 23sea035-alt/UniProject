@@ -32,15 +32,16 @@ const char* WIFI_SSID     = "Dialog 4G 683";
 const char* WIFI_PASSWORD = "BcD937EF";
 
 // LAN mode (PC server):   API_USE_HTTPS=false, API_HOST="192.168.8.106", API_PORT=3000
-// Cloud mode (Render):    API_USE_HTTPS=true,  API_HOST="aquatrack-api.onrender.com", API_PORT=443
-const bool  API_USE_HTTPS = false;
-const char* API_HOST      = "192.168.8.106";
-const int   API_PORT      = 3000;
+// Cloud mode (Render):    API_USE_HTTPS=true,  API_HOST="aquatrack-api-qdy7.onrender.com", API_PORT=443
+const bool  API_USE_HTTPS = true;
+const char* API_HOST      = "aquatrack-api-qdy7.onrender.com";
+const int   API_PORT      = 443;
 const char* DEVICE_KEY    = "ESP32-WM001";    // X-Device-Key header
 
 #define ONBOARD_LED_PIN 2    // built-in LED
 #define EXT_LED_PIN     23   // external LED via resistor
 const unsigned long POLL_INTERVAL_MS = 3000;
+const unsigned long HTTP_TIMEOUT_MS  = 20000;  // 20s timeout for cold starts
 
 // Continuous-blink timing while LED is switched ON
 const unsigned long BLINK_ON_MS  = 150;
@@ -62,7 +63,9 @@ bool apiBegin(HTTPClient& http, const String& url) {
   if (!API_USE_HTTPS) return http.begin(url);
   WiFiClientSecure& client = getSecureClient();
   client.setInsecure();               // TODO production: pin the server CA cert
-  return http.begin(client, url);
+  bool ok = http.begin(client, url);
+  if (ok) http.setTimeout(HTTP_TIMEOUT_MS);
+  return ok;
 }
 
 void setLed(bool on) {
@@ -111,15 +114,24 @@ String jsonStr(const String& body, const String& key) {
 }
 
 void sendAck(const String& commandId, bool success) {
-  HTTPClient http;
-  String url = String("http://") + API_HOST + ":" + API_PORT + "/api/led/ack";
-  apiBegin(http, url);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-Device-Key", DEVICE_KEY);
-  String payload = "{\"commandId\":\"" + commandId + "\",\"success\":" + (success ? "true" : "false") + "}";
-  int code = http.POST(payload);
-  Serial.printf("[ACK] %s -> HTTP %d\n", commandId.c_str(), code);
-  http.end();
+  for (int attempt = 1; attempt <= 3; attempt++) {
+    HTTPClient http;
+    String url = String("http://") + API_HOST + ":" + API_PORT + "/api/led/ack";
+    if (!apiBegin(http, url)) { http.end(); delay(500); continue; }
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-Key", DEVICE_KEY);
+    String payload = "{\"commandId\":\"" + commandId + "\",\"success\":" + (success ? "true" : "false") + "}";
+    int code = http.POST(payload);
+    if (code == 200) {
+      Serial.printf("[ACK] %s -> HTTP 200\n", commandId.c_str());
+      http.end();
+      return;
+    }
+    Serial.printf("[ACK] attempt %d failed: HTTP %d\n", attempt, code);
+    http.end();
+    if (attempt < 3) delay(1000 * attempt);
+  }
+  Serial.printf("[ACK] %s -> all retries failed\n", commandId.c_str());
 }
 
 void applyCommand(const String& action, const String& commandId) {
@@ -150,25 +162,35 @@ void applyCommand(const String& action, const String& commandId) {
 
 // Ask the server for the next queued command: {"command":{"id":"..","action":".."}} or {"command":null}
 void pollCommands() {
-  HTTPClient http;
-  String url = String("http://") + API_HOST + ":" + API_PORT + "/api/led/poll";
-  apiBegin(http, url);
-  http.addHeader("X-Device-Key", DEVICE_KEY);
-  int code = http.GET();
+  for (int attempt = 1; attempt <= 3; attempt++) {
+    HTTPClient http;
+    String url = String("http://") + API_HOST + ":" + API_PORT + "/api/led/poll";
+    if (!apiBegin(http, url)) { http.end(); delay(500); continue; }
+    http.addHeader("X-Device-Key", DEVICE_KEY);
+    int code = http.GET();
 
-  if (code == 200) {
-    String body = http.getString();
-    http.end();
+    if (code == 200) {
+      String body = http.getString();
+      http.end();
 
-    if (body.indexOf("\"command\":null") >= 0) return;   // nothing queued
+      if (body.indexOf("\"command\":null") >= 0) return;   // nothing queued
 
-    String id     = jsonStr(body, "id");
-    String action = jsonStr(body, "action");
-    if (id.length() > 0 && action.length() > 0) {
-      applyCommand(action, id);
-    } else {
+      String id     = jsonStr(body, "id");
+      String action = jsonStr(body, "action");
+      if (id.length() > 0 && action.length() > 0) {
+        applyCommand(action, id);
+        return;
+      }
       Serial.println("[POLL] unexpected body: " + body);
+      return;
     }
+
+    Serial.printf("[POLL] attempt %d failed: HTTP %d\n", attempt, code);
+    http.end();
+    if (attempt < 3) delay(2000 * attempt);
+  }
+  Serial.println("[POLL] all retries failed");
+}
     return;
   }
 
@@ -178,41 +200,60 @@ void pollCommands() {
 
 // Keep sending readings so the dashboard shows the device online
 void sendReading() {
-  HTTPClient http;
-  String url = String("http://") + API_HOST + ":" + API_PORT + "/api/readings";
-  apiBegin(http, url);
-  http.addHeader("Content-Type", "application/json");
-  http.addHeader("X-Device-Key", DEVICE_KEY);
+  for (int attempt = 1; attempt <= 3; attempt++) {
+    HTTPClient http;
+    String url = String("http://") + API_HOST + ":" + API_PORT + "/api/readings";
+    if (!apiBegin(http, url)) { http.end(); delay(500); continue; }
+    http.addHeader("Content-Type", "application/json");
+    http.addHeader("X-Device-Key", DEVICE_KEY);
 
-  // pulseCount=0 keeps usage untouched - this is only a connectivity test
-  String payload = "{\"pulseCount\":0,\"flowRate\":0,\"recordedAt\":\"" + isoTime() +
-                   "\",\"type\":\"reading\",\"online\":true}";
-  int code = http.POST(payload);
-  if (code != 201) {
-    Serial.printf("[READ] failed: HTTP %d\n", code);
+    String payload = "{\"pulseCount\":0,\"flowRate\":0,\"recordedAt\":\"" + isoTime() +
+                     "\",\"type\":\"reading\",\"online\":true}";
+    int code = http.POST(payload);
+    if (code == 201) {
+      http.end();
+      return;
+    }
+    Serial.printf("[READ] attempt %d failed: HTTP %d\n", attempt, code);
+    http.end();
+    if (attempt < 3) delay(1000 * attempt);
   }
+  Serial.println("[READ] all retries failed");
+}
   http.end();
 }
 
 // After boot: ask the server what the LED should be: {"on":true|false|null}
 void restoreState() {
-  HTTPClient http;
-  String url = String("http://") + API_HOST + ":" + API_PORT + "/api/led/state";
-  apiBegin(http, url);
-  http.addHeader("X-Device-Key", DEVICE_KEY);
-  int code = http.GET();
-  if (code == 200) {
-    String body = http.getString();
-    int onIdx = body.indexOf("\"on\":true");
-    int offIdx = body.indexOf("\"on\":false");
-    if (onIdx >= 0) {
-      ledCommandOn = true;
-      Serial.println("[STATE] restored: ON (blinking)");
-    } else if (offIdx >= 0) {
-      ledCommandOn = false;
-      setLed(false);
-      Serial.println("[STATE] restored: OFF");
+  for (int attempt = 1; attempt <= 5; attempt++) {
+    HTTPClient http;
+    String url = String("http://") + API_HOST + ":" + API_PORT + "/api/led/state";
+    if (!apiBegin(http, url)) { http.end(); delay(1000); continue; }
+    http.addHeader("X-Device-Key", DEVICE_KEY);
+    int code = http.GET();
+    if (code == 200) {
+      String body = http.getString();
+      int onIdx = body.indexOf("\"on\":true");
+      int offIdx = body.indexOf("\"on\":false");
+      if (onIdx >= 0) {
+        ledCommandOn = true;
+        Serial.println("[STATE] restored: ON (blinking)");
+      } else if (offIdx >= 0) {
+        ledCommandOn = false;
+        setLed(false);
+        Serial.println("[STATE] restored: OFF");
+      }
+      http.end();
+      return;
     }
+    Serial.printf("[STATE] attempt %d failed: HTTP %d\n", attempt, code);
+    http.end();
+    if (attempt < 5) delay(3000 * attempt);
+  }
+  Serial.println("[STATE] all retries failed — starting OFF");
+  ledCommandOn = false;
+  setLed(false);
+}
   } else {
     Serial.printf("[STATE] restore failed: HTTP %d\n", code);
   }
