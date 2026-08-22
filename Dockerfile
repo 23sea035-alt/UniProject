@@ -1,26 +1,35 @@
-# AquaTrack API - production container
-# Build context must be the REPO ROOT (workspace layout is required for pnpm)
+# AquaTrack API - production container (pnpm-safe)
+# Build context: repo root
 
 FROM node:22-alpine AS build
 RUN corepack enable && corepack prepare pnpm@10 --activate
 WORKDIR /app
 
-# Copy the whole workspace (pnpm install needs every package.json)
-COPY . .
+# Copy everything needed for install
+COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
+COPY artifacts/api-server/package.json ./artifacts/api-server/
+COPY lib/package.json ./lib/ 2>/dev/null || true
 
+# Install only api-server deps (including workspace deps)
 RUN pnpm install --frozen-lockfile --filter @workspace/api-server...
 
+# Copy source and build
+COPY artifacts/api-server ./artifacts/api-server
 WORKDIR /app/artifacts/api-server
 RUN pnpm run build
 
+# Final stage: install production deps fresh (avoids pnpm symlink issues)
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
 
+# Copy built dist + package.json
 COPY --from=build /app/artifacts/api-server/dist ./dist
-COPY --from=build /app/artifacts/api-server/node_modules ./node_modules
 COPY --from=build /app/artifacts/api-server/package.json ./
-COPY --from=build /app/node_modules ./node_modules
+
+# Install ONLY production deps (pnpm creates proper node_modules)
+RUN corepack enable && corepack prepare pnpm@10 --activate \
+    && pnpm install --prod --frozen-lockfile
 
 EXPOSE 3000
 CMD ["node", "--enable-source-maps", "./dist/index.mjs"]
